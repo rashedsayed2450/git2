@@ -1,7 +1,7 @@
-name: Upload File s3
+name: Upload file s31
 
 on:
-  Push:
+  push:
     branches:
       - master
 
@@ -13,10 +13,9 @@ jobs:
     - uses: jakejarvis/s3-sync-action@master
       with:
         args: --acl public-read --follow-symlinks --delete --exclude '.git*/*'
-      env:
-        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-        AWS_ACCESS_KEY_ID : ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRECT_ACCESS_KEY: ${{secrets.AWS_SECRECT_ACCESS_KEY}}
-        AWS_SESSION_TOKEN : ${{secrets.AWS_SESSION_TOKEN}}
-        AWS_REGION : ${{secrets.AWS_REGION}}
-        
+      env: 
+        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }} 
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_SESSION_TOKEN: ${{secrets.AWS_SESSION_TOKEN}}
+        REGION: ${{secrets.REGION}}
