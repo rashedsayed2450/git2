@@ -22,7 +22,7 @@
 
 
 # This is a basic workflow to help you get started with Actions
-name: combine
+name: combinecft
 # Controls when the action will run. 
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
@@ -63,15 +63,15 @@ jobs:
  
 
       
-      # - name: Deploy CloudFormation stack
-      #   run: |
-      #     aws cloudformation deploy \
-      #       --stack-name my-stack-name \
-      #       --template-file "your CFT file path" \
-      #       --capabilities Lab_Role
-      #    env:
-      #     AWS_ACCESS_KEY_ID: "Your detail"
-      #     AWS_SECRET_ACCESS_KEY: "Your detail"
-      #     AWS_DEFAULT_REGION: "Your detail"
-      #     AWS_SESSION_TOKEN: "Your detail"
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name rashed1 \
+            --template-file .github/workflows/cft.yml \
+            --capabilities Lab_Role
+         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
       
