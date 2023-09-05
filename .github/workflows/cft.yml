@@ -6,3 +6,151 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: rashedgithub
+
+AWSTemplateFormatVersion : "2010-09-09"
+Description: "CloudFormation Template for deploying S3 Bucket"
+
+Parameters:
+  project:
+    Type: String
+    Description:  Project Name
+    Default: big-data
+  app:
+    Type: String
+    Description:  Application Name
+    Default: grp-5   
+  env:
+    Type: String
+    AllowedValues: 
+     - prod
+     - dev
+     - qa
+     - uat
+    Description:  Environment Name
+    Default: dev 
+  s3ArtifactPath:
+    Type: String
+    Description: "Artifact Bucket Path"
+    Default: https://rashedgithub.s3.amazonaws.com/glue1/
+  bucketName:
+    Type: String
+    Description: Bucket Name
+    Default: test-bucket-3914039250251
+  versioningStatus:
+    Type: String
+    Description: Enables multiple versions of all objects in this bucket
+    AllowedValues:
+      - Enabled
+      - Suspended
+    Default: Suspended
+  indexDocument:
+    Type: String
+    Description: The name of the index document for the website
+    Default: index.html
+  errorDocument:
+    Type: String
+    Description: The name of the error document for the website
+    Default: error.html
+      
+Resources:
+  s3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub ${project}-${app}-${env}-data-lake
+      WebsiteConfiguration:
+        IndexDocument: !Ref indexDocument
+        ErrorDocument: !Ref errorDocument
+      VersioningConfiguration:
+        Status: !Ref versioningStatus
+      Tags:
+        - Key: name
+          Value: !Sub "${project}-${app}-${env}-s3Bucket"
+        - Key: project
+          Value: !Ref project
+        - Key: app
+          Value: !Ref app
+        - Key: env
+          Value: !Ref env          
+  bucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref s3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: ObjectPolicy
+        Statement:
+        - Sid: DenyUnEncryptedObjectUploads
+          Effect: Deny
+          Principal:
+            AWS: !Sub ${AWS::AccountId}
+          Action: s3:PutObject
+          Resource: !Sub arn:aws:s3:::${s3Bucket}/*
+          Condition:
+            'Null':
+              s3:x-amz-server-side-encryption: true
+  GlueJobImport:
+    Type: AWS::Glue::Job
+    DependsOn: s3Bucket
+    Properties:
+      Name: data-import-from-RDS-and-S3
+      Description: Ingests data from s3 and writes it as a parquet file to the data lake
+      ExecutionClass: FLEX
+      GlueVersion: 4.0
+      MaxRetries: 0
+      NumberOfWorkers: 5
+      Role: arn:aws:iam::139637458085:role/LabRole-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+      Timeout: 30
+      WorkerType: G.1X
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://g5-data-lake/scripts/data_ingestion_from_S3.py
+      DefaultArguments:
+        '--s3-bucket': !Ref s3Bucket  # Referencing the created S3 bucket
+  GlueJobExport:
+    Type: AWS::Glue::Job
+    DependsOn: GlueJobImport
+    Properties:
+      Name: data-export-to-redshift
+      Description: Ingests data from datalake exports it to redshift
+      ExecutionClass: FLEX
+      GlueVersion: 4.0
+      MaxRetries: 0
+      NumberOfWorkers: 5
+      Role: arn:aws:iam::828753940747:role/LabRole
+      Timeout: 30
+      WorkerType: G.1X
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://g5-data-lake/scripts/data_ingestion_from_S3.py
+      DefaultArguments:
+        '--redshift-url' : !Ref GlueJobImport
+
+  # RedshiftCluster:
+  #   Type: 'AWS::Redshift::Cluster'
+  #   Properties:
+  #     ClusterType: single-node
+  #     NumberOfNodes: 1
+  #     MasterUsername: admin
+  #     MasterUserPassword: ajfduQh32Hbnfgs
+  #     NodeType: dc2.large
+  #     ClusterIdentifier: myredshiftcluster
+  #     DBName: mydatabase
+
+Outputs:
+  s3Bucket:
+    Description:  S3 Bucket Name
+    Value: !Ref s3Bucket
+    Export:
+      Name: !Sub "${project}-${app}-${env}-data-lake"
+  GlueJobImportName:
+    Description: Name of the created Glue job
+    Value: !Ref GlueJobImport
+  GlueJobExportName:
+    Description: Name of the created Glue job
+    Value: !Ref GlueJobExport
+  # RedshiftClusterJDBCEndpoint:
+  #   Description: Redshift Cluster JDBC Endpoint
+  #   Value: !GetAtt RedshiftCluster.Endpoint.Address
+  #   Export:
+  #     Name: !Sub "${project}-${app}-${env}-redshift-jdbc-endpoint"
